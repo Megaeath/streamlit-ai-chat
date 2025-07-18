@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 import json
 from datetime import datetime, date, timedelta
+import html
+import re
 
 # Load environment variables
 load_dotenv()
@@ -154,6 +156,20 @@ def get_ai_response(selected_model, message, chat_history):
             )
             return response.content[0].text
             
+        elif provider == 'Groq' and GROQ_AVAILABLE:
+            # Groq logic
+            messages = []
+            for msg in chat_history[-5:] if chat_history else []:
+                role = 'user' if msg['role'] == 'user' else 'assistant'
+                messages.append({"role": role, "content": msg['content']})
+            messages.append({"role": "user", "content": message})
+            response = groq_client.chat.completions.create(
+                model=model_id,
+                messages=messages,
+                max_tokens=500
+            )
+            return response.choices[0].message.content
+            
         else:
             return f"API not available for {provider}. Please check your API keys in .env file."
             
@@ -197,6 +213,17 @@ if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'selected_model_name' not in st.session_state:
     st.session_state['selected_model_name'] = None
+
+# --- Groq Integration ---
+GROQ_AVAILABLE = False
+try:
+    import groq
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+    if GROQ_API_KEY:
+        groq_client = groq.Groq(api_key=GROQ_API_KEY)
+        GROQ_AVAILABLE = True
+except Exception as e:
+    GROQ_AVAILABLE = False
 
 # --- Login Function ---
 def login():
@@ -306,6 +333,11 @@ if available_models:
             st.success('✅ Anthropic API available')
         else:
             st.error('❌ Anthropic API not available - check ANTHROPIC_API_KEY in .env')
+    elif provider == 'Groq':
+        if GROQ_AVAILABLE:
+            st.success('✅ Groq API available')
+        else:
+            st.error('❌ Groq API not available - check GROQ_API_KEY in .env')
 else:
     st.error('No models configured. Please check config.json')
     st.stop()
@@ -346,22 +378,29 @@ st.subheader('💬 Chat')
 chat_container = st.container()
 with chat_container:
     for i, msg in enumerate(st.session_state['chat_history']):
+        content = msg["content"]
+        is_code_block = bool(re.match(r"^```[a-zA-Z0-9]*\\n", content)) or content.strip().startswith('```')
         if msg['role'] == 'user':
-            st.markdown(f"""
+            st.markdown("""
             <div style="text-align: right; margin-bottom: 12px;">
-                <span style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                color: white; padding: 10px 16px; border-radius: 18px; max-width: 70%; 
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);">{msg["content"]}</span>
-            </div>
             """, unsafe_allow_html=True)
+            if is_code_block:
+                # Remove triple backticks and optional language
+                code = re.sub(r"^```[a-zA-Z0-9]*\\n|```$", "", content.strip(), flags=re.MULTILINE)
+                st.code(code)
+            else:
+                st.markdown(content)
+            st.markdown("</div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"""
+            st.markdown("""
             <div style="text-align: left; margin-bottom: 12px;">
-                <span style="display: inline-block; background: white; color: #333; 
-                padding: 10px 16px; border-radius: 18px; max-width: 70%; 
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">{msg["content"]}</span>
-            </div>
             """, unsafe_allow_html=True)
+            if is_code_block:
+                code = re.sub(r"^```[a-zA-Z0-9]*\\n|```$", "", content.strip(), flags=re.MULTILINE)
+                st.code(code)
+            else:
+                st.markdown(content)
+            st.markdown("</div>", unsafe_allow_html=True)
 
 # Enhanced user input
 col1, col2 = st.columns([4, 1])
@@ -407,7 +446,7 @@ if send_triggered and user_input.strip():
             <div style=\"text-align: left; margin-bottom: 12px;\">
                 <span style=\"display: inline-block; background: white; color: #333; \
                 padding: 10px 16px; border-radius: 18px; max-width: 70%; \
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;\">{displayed}</span>
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;\">{html.escape(displayed)}</span>
             </div>
             """, unsafe_allow_html=True)
             import time

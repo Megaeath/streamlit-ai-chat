@@ -65,6 +65,30 @@
         "limit_type": "per_day",
         "enabled": false
       }
+    },
+    "Groq": {
+      "Allam 2 7B": {"model": "allam-2-7b", "limit": 7000, "limit_type": "per_day", "enabled": true},
+      "Compound Beta": {"model": "compound-beta", "limit": 200, "limit_type": "per_day", "enabled": true},
+      "Compound Beta Mini": {"model": "compound-beta-mini", "limit": 200, "limit_type": "per_day", "enabled": true},
+      "DeepSeek R1 Distill Llama 70B": {"model": "deepseek-r1-distill-llama-70b", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Gemma2 9B IT": {"model": "gemma2-9b-it", "limit": 14400, "limit_type": "per_day", "enabled": true},
+      "Llama 3.1 8B Instant": {"model": "llama-3.1-8b-instant", "limit": 14400, "limit_type": "per_day", "enabled": true},
+      "Llama 3.3 70B Versatile": {"model": "llama-3.3-70b-versatile", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Llama 3 70B": {"model": "llama3-70b-8192", "limit": 14400, "limit_type": "per_day", "enabled": true},
+      "Llama 3 8B": {"model": "llama3-8b-8192", "limit": 14400, "limit_type": "per_day", "enabled": true},
+      "Meta Llama 4 Maverick 17B 128E Instruct": {"model": "meta-llama/llama-4-maverick-17b-128e-instruct", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Meta Llama 4 Scout 17B 16E Instruct": {"model": "meta-llama/llama-4-scout-17b-16e-instruct", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Meta Llama Guard 4 12B": {"model": "meta-llama/llama-guard-4-12b", "limit": 14400, "limit_type": "per_day", "enabled": true},
+      "Meta Llama Prompt Guard 2 22M": {"model": "meta-llama/llama-prompt-guard-2-22m", "limit": 14400, "limit_type": "per_day", "enabled": true},
+      "Meta Llama Prompt Guard 2 86M": {"model": "meta-llama/llama-prompt-guard-2-86m", "limit": 14400, "limit_type": "per_day", "enabled": true},
+      "Mixtral 8x7B": {"model": "mixtral-8x7b-32768", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Mistral Saba 24B": {"model": "mistral-saba-24b", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "MoonshotAI Kimi K2 Instruct": {"model": "moonshotai/kimi-k2-instruct", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Qwen Qwen3 32B": {"model": "qwen/qwen3-32b", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Gemma 7B": {"model": "gemma-7b-it", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Llama 2 70B": {"model": "llama2-70b-4096", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Llama 2 13B": {"model": "llama2-13b-4096", "limit": 1000, "limit_type": "per_day", "enabled": true},
+      "Llama 2 7B": {"model": "llama2-7b-4096", "limit": 1000, "limit_type": "per_day", "enabled": true}
     }
   }
 } 
