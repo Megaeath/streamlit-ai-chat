@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Streamlit local config and data
+.streamlit/credentials.toml
+.streamlit/secrets.toml
+usage_tracker.json
+
+# Jupyter and IPython
+.ipynb_checkpoints
+
+# IDE/editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Misc
+*.bak
+*.swp
+*.tmp
+
+# Node/npm (if you ever add JS components)
+node_modules/
+
+# Ignore exported chat files
+chat_history.txt
+chat_history.json 
+from-gpt.md
+from-gemini.md
+from-claude.md
