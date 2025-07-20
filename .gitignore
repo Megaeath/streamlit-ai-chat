@@ -4,7 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.pyc
-
+/venv/
 # Environment variables and secrets
 .env
 .env.*
@@ -13,6 +13,7 @@ __pycache__/
 .streamlit/credentials.toml
 .streamlit/secrets.toml
 usage_tracker.json
+last_reset.json
 
 # Jupyter and IPython
 .ipynb_checkpoints

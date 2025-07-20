@@ -54,6 +54,7 @@ except:
 
 # Usage tracking
 USAGE_FILE = 'usage_tracker.json'
+LAST_RESET_FILE = 'last_reset.json'
 
 def load_usage():
     """Load usage data from file"""
@@ -67,6 +68,73 @@ def save_usage(usage_data):
     """Save usage data to file"""
     with open(USAGE_FILE, 'w') as f:
         json.dump(usage_data, f)
+
+def load_last_reset():
+    """Load last reset timestamp"""
+    try:
+        with open(LAST_RESET_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_last_reset(reset_data):
+    """Save last reset timestamp"""
+    with open(LAST_RESET_FILE, 'w') as f:
+        json.dump(reset_data, f)
+
+def check_and_reset_daily_usage():
+    """Check if 24 hours have passed and reset usage if needed"""
+    current_time = datetime.now()
+    last_reset_data = load_last_reset()
+    usage_data = load_usage()
+    
+    # Check if we need to reset (24 hours passed)
+    should_reset = False
+    
+    if not last_reset_data:
+        # First time running, set initial reset time
+        should_reset = True
+    else:
+        last_reset_str = last_reset_data.get('last_reset')
+        if last_reset_str:
+            last_reset = datetime.fromisoformat(last_reset_str)
+            time_diff = current_time - last_reset
+            if time_diff.total_seconds() >= 24 * 3600:  # 24 hours in seconds
+                should_reset = True
+    
+    if should_reset:
+        # Reset all usage to 0
+        for provider in usage_data:
+            for model_name in usage_data[provider]:
+                usage_data[provider][model_name] = {}
+        
+        # Save reset usage data
+        save_usage(usage_data)
+        
+        # Update last reset timestamp
+        last_reset_data['last_reset'] = current_time.isoformat()
+        save_last_reset(last_reset_data)
+        
+        return True
+    
+    return False
+
+def get_next_reset_time():
+    """Get the next reset time (24 hours from last reset)"""
+    last_reset_data = load_last_reset()
+    
+    if not last_reset_data or 'last_reset' not in last_reset_data:
+        # If no reset data, next reset is in 24 hours from now
+        next_reset = datetime.now() + timedelta(hours=24)
+        return next_reset
+    
+    last_reset_str = last_reset_data.get('last_reset')
+    if last_reset_str:
+        last_reset = datetime.fromisoformat(last_reset_str)
+        next_reset = last_reset + timedelta(hours=24)
+        return next_reset
+    
+    return datetime.now() + timedelta(hours=24)
 
 def get_usage_for_model(provider, model_name):
     """Get current usage for a specific model"""
@@ -84,11 +152,11 @@ def get_usage_for_model(provider, model_name):
     
     return usage_data[provider][model_name][today], usage_data
 
-def increment_usage(provider, model_name):
-    """Increment usage for a specific model"""
+def increment_usage(provider, model_name, token_count=1):
+    """Increment usage for a specific model (tokens or requests)"""
     current_usage, usage_data = get_usage_for_model(provider, model_name)
     today = date.today().isoformat()
-    usage_data[provider][model_name][today] = current_usage + 1
+    usage_data[provider][model_name][today] = current_usage + token_count
     save_usage(usage_data)
 
 def get_available_models():
@@ -106,7 +174,7 @@ def get_available_models():
     return available_models
 
 def get_ai_response(selected_model, message, chat_history):
-    """Get response from selected AI model"""
+    """Get response from selected AI model and return (text, token_count)"""
     try:
         provider = selected_model['provider']
         model_config = selected_model['config']
@@ -124,7 +192,13 @@ def get_ai_response(selected_model, message, chat_history):
             # Generate response
             gemini_model = genai.GenerativeModel(model_id)
             response = gemini_model.generate_content(f"{context}User: {message}")
-            return response.text
+            
+            # Extract token count from Gemini response
+            token_count = 0
+            if hasattr(response, 'usage_metadata'):
+                token_count = response.usage_metadata.prompt_token_count + response.usage_metadata.candidates_token_count
+            
+            return response.text, token_count
             
         elif provider == 'OpenAI' and OPENAI_AVAILABLE:
             # Build messages for OpenAI
@@ -139,7 +213,11 @@ def get_ai_response(selected_model, message, chat_history):
                 messages=messages,
                 max_tokens=500
             )
-            return response.choices[0].message.content
+            
+            # Extract token count from OpenAI response
+            token_count = response.usage.total_tokens if hasattr(response, 'usage') else 0
+            
+            return response.choices[0].message.content, token_count
             
         elif provider == 'Anthropic' and ANTHROPIC_AVAILABLE:
             # Build messages for Anthropic
@@ -154,7 +232,13 @@ def get_ai_response(selected_model, message, chat_history):
                 messages=messages,
                 max_tokens=500
             )
-            return response.content[0].text
+            
+            # Extract token count from Anthropic response
+            token_count = 0
+            if hasattr(response, 'usage'):
+                token_count = response.usage.input_tokens + response.usage.output_tokens
+            
+            return response.content[0].text, token_count
             
         elif provider == 'Groq' and GROQ_AVAILABLE:
             # Groq logic
@@ -163,18 +247,26 @@ def get_ai_response(selected_model, message, chat_history):
                 role = 'user' if msg['role'] == 'user' else 'assistant'
                 messages.append({"role": role, "content": msg['content']})
             messages.append({"role": "user", "content": message})
+            
+            # Generate response
             response = groq_client.chat.completions.create(
                 model=model_id,
                 messages=messages,
                 max_tokens=500
             )
-            return response.choices[0].message.content
+            
+            # Extract token count from Groq response
+            token_count = 0
+            if hasattr(response, 'usage'):
+                token_count = response.usage.prompt_tokens + response.usage.completion_tokens
+            
+            return response.choices[0].message.content, token_count
             
         else:
-            return f"API not available for {provider}. Please check your API keys in .env file."
+            return f"API not available for {provider}. Please check your API keys in .env file.", 0
             
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error: {str(e)}", 0
 
 def check_usage_limit(selected_model):
     """Check if usage limit is reached for the selected model"""
@@ -246,6 +338,10 @@ def login():
     password = st.text_input('Password', type='password')
     if st.button('Login', use_container_width=True):
         if username == USERNAME and password == PASSWORD:
+            # Check and reset daily usage if 24 hours have passed
+            if check_and_reset_daily_usage():
+                st.success('✅ Daily usage reset! All token usage has been reset to 0.')
+            
             st.session_state['authenticated'] = True
             st.success('Logged in!')
         else:
@@ -350,6 +446,7 @@ st.subheader('📊 Usage Tracker')
 
 current_usage, _ = get_usage_for_model(selected_model['provider'], selected_model['model_name'])
 limit = selected_model['config']['limit']
+limit_unit = selected_model['config'].get('limit_unit', 'requests')
 usage_percentage = (current_usage / limit) * 100
 
 # Progress bar with color coding
@@ -361,12 +458,22 @@ else:
     color = "red"
 
 st.progress(usage_percentage / 100)
-st.write(f"**{selected_model['display_name']}:** {current_usage}/{limit} requests used ({usage_percentage:.1f}%)")
+st.write(f"**{selected_model['display_name']}:** {current_usage:,}/{limit:,} {limit_unit} used ({usage_percentage:.1f}%)")
+
+# Show next reset time
+next_reset = get_next_reset_time()
+time_until_reset = next_reset - datetime.now()
+hours_until_reset = time_until_reset.total_seconds() / 3600
+
+if hours_until_reset > 0:
+    st.info(f"🔄 Next daily reset in {hours_until_reset:.1f} hours ({next_reset.strftime('%Y-%m-%d %H:%M')})")
+else:
+    st.success("✅ Daily reset available! Login again to reset usage.")
 
 if usage_percentage >= 90:
-    st.warning(f"⚠️ You're close to your {selected_model['model_name']} limit!")
+    st.warning(f"⚠️ You're close to your {selected_model['model_name']} {limit_unit} limit!")
 elif usage_percentage >= 70:
-    st.info(f"ℹ️ You've used {usage_percentage:.1f}% of your {selected_model['model_name']} limit")
+    st.info(f"ℹ️ You've used {usage_percentage:.1f}% of your {selected_model['model_name']} {limit_unit} limit")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -432,11 +539,11 @@ if send_triggered and user_input.strip():
     else:
         # Add user message
         st.session_state['chat_history'].append({'role': 'user', 'content': user_input})
-        # Increment usage
-        increment_usage(selected_model['provider'], selected_model['model_name'])
         # Get real AI response
         with st.spinner('🤔 Thinking...'):
-            ai_response = get_ai_response(selected_model, user_input, st.session_state['chat_history'])
+            ai_response, token_count = get_ai_response(selected_model, user_input, st.session_state['chat_history'])
+        # Increment usage with token count
+        increment_usage(selected_model['provider'], selected_model['model_name'], token_count)
         # Enhanced streaming effect
         displayed = ''
         response_placeholder = st.empty()
@@ -497,6 +604,28 @@ with st.sidebar:
     if st.button('Logout', key='logout_btn', use_container_width=True):
         st.session_state['authenticated'] = False
         st.rerun()
+    
+    st.markdown('---')
+    st.markdown('### 🔄 Usage Management')
+    
+    # Show current reset status
+    next_reset = get_next_reset_time()
+    time_until_reset = next_reset - datetime.now()
+    hours_until_reset = time_until_reset.total_seconds() / 3600
+    
+    if hours_until_reset > 0:
+        st.info(f"Next reset: {hours_until_reset:.1f}h")
+    else:
+        st.success("Reset available!")
+    
+    # Manual reset button (for testing)
+    if st.button('🔄 Force Daily Reset', key='force_reset_btn', use_container_width=True):
+        if check_and_reset_daily_usage():
+            st.success('✅ Usage reset successfully!')
+        else:
+            st.info('ℹ️ Reset not needed yet')
+        st.rerun()
+    
     st.markdown('---')
     if st.session_state.get('chat_history'):
         export_format = st.selectbox('Export chat as:', ['Text (.txt)', 'JSON (.json)'], key='export_format')
