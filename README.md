@@ -46,6 +46,7 @@ OPENAI_API_KEY=your_openai_api_key
 GEMINI_API_KEY=your_gemini_api_key
 ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional, for Claude
 GROQ_API_KEY=your_groq_api_key            # For Groq models
+OPENROUTER_API_KEY=your_openrouter_api_key # For OpenRouter models (like Kimi K2)
 ```
 
 ## Deployment

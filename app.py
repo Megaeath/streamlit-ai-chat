@@ -27,11 +27,14 @@ CONFIG = load_config()
 OPENAI_AVAILABLE = False
 GEMINI_AVAILABLE = False
 ANTHROPIC_AVAILABLE = False
+GROQ_AVAILABLE = False
+OPENROUTER_AVAILABLE = False
 
 try:
     import openai
-    openai.api_key = os.getenv('OPENAI_API_KEY')
-    if os.getenv('OPENAI_API_KEY'):
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    if OPENAI_API_KEY:
+        openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
         OPENAI_AVAILABLE = True
 except:
     pass
@@ -49,6 +52,28 @@ try:
     if os.getenv('ANTHROPIC_API_KEY'):
         anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
         ANTHROPIC_AVAILABLE = True
+except:
+    pass
+
+try:
+    import groq
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+    if GROQ_API_KEY:
+        groq_client = groq.Groq(api_key=GROQ_API_KEY)
+        GROQ_AVAILABLE = True
+except Exception as e:
+    GROQ_AVAILABLE = False
+
+try:
+    # OpenRouter uses the OpenAI SDK
+    import openai
+    OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+    if OPENROUTER_API_KEY:
+        openrouter_client = openai.OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=OPENROUTER_API_KEY
+        )
+        OPENROUTER_AVAILABLE = True
 except:
     pass
 
@@ -208,7 +233,7 @@ def get_ai_response(selected_model, message, chat_history):
             messages.append({"role": "user", "content": message})
             
             # Generate response
-            response = openai.ChatCompletion.create(
+            response = openai_client.chat.completions.create(
                 model=model_id,
                 messages=messages,
                 max_tokens=500
@@ -216,6 +241,27 @@ def get_ai_response(selected_model, message, chat_history):
             
             # Extract token count from OpenAI response
             token_count = response.usage.total_tokens if hasattr(response, 'usage') else 0
+            
+            return response.choices[0].message.content, token_count
+        elif provider == 'OpenRouter' and OPENROUTER_AVAILABLE:
+            # OpenRouter logic
+            messages = []
+            for msg in chat_history[-5:] if chat_history else []:
+                role = 'user' if msg['role'] == 'user' else 'assistant'
+                messages.append({"role": role, "content": msg['content']})
+            messages.append({"role": "user", "content": message})
+            
+            # Generate response
+            response = openrouter_client.chat.completions.create(
+                model=model_id,
+                messages=messages,
+                max_tokens=500
+            )
+            
+            # Extract token count from OpenRouter response (same as OpenAI)
+            token_count = 0
+            if hasattr(response, 'usage') and response.usage is not None:
+                token_count = response.usage.total_tokens
             
             return response.choices[0].message.content, token_count
             
@@ -434,6 +480,11 @@ if available_models:
             st.success('✅ Groq API available')
         else:
             st.error('❌ Groq API not available - check GROQ_API_KEY in .env')
+    elif provider == 'OpenRouter':
+        if OPENROUTER_AVAILABLE:
+            st.success('✅ OpenRouter API available')
+        else:
+            st.error('❌ OpenRouter API not available - check OPENROUTER_API_KEY in .env')
 else:
     st.error('No models configured. Please check config.json')
     st.stop()
