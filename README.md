@@ -25,7 +25,7 @@ A secure, single-user Streamlit app for chatting with Gemini, ChatGPT, Groq (Lla
 
 ## Setup
 1. Clone the repo
-2. Create a `.env` file from the example below and fill in your credentials and API keys
+2. Create a `.streamlit/secrets.toml` file from the example below and fill in your credentials and API keys
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
@@ -35,18 +35,18 @@ A secure, single-user Streamlit app for chatting with Gemini, ChatGPT, Groq (Lla
    streamlit run app.py
    ```
 
-## Example `.env` file
-```env
+## Example `.streamlit/secrets.toml` file
+```toml
 # Streamlit login credentials
-STREAMLIT_USERNAME=your_username
-STREAMLIT_PASSWORD=your_password
+STREAMLIT_USERNAME = "your_username"
+STREAMLIT_PASSWORD = "your_password"
 
 # API keys for providers
-OPENAI_API_KEY=your_openai_api_key
-GEMINI_API_KEY=your_gemini_api_key
-ANTHROPIC_API_KEY=your_anthropic_api_key  # Optional, for Claude
-GROQ_API_KEY=your_groq_api_key            # For Groq models
-OPENROUTER_API_KEY=your_openrouter_api_key # For OpenRouter models (like Kimi K2)
+OPENAI_API_KEY = "your_openai_api_key"
+GEMINI_API_KEY = "your_gemini_api_key"
+ANTHROPIC_API_KEY = "your_anthropic_api_key"  # Optional, for Claude
+GROQ_API_KEY = "your_groq_api_key"            # For Groq models
+OPENROUTER_API_KEY = "your_openrouter_api_key" # For OpenRouter models (like Kimi K2)
 ```
 
 ## Deployment
@@ -54,4 +54,4 @@ OPENROUTER_API_KEY=your_openrouter_api_key # For OpenRouter models (like Kimi K2
 
 ## Requirements
 - Python 3.9+
-- OpenAI, Gemini, Groq API keys (free tier supported) 
+- OpenAI, Gemini, Groq API keys (free tier supported)

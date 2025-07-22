@@ -1,17 +1,13 @@
 import streamlit as st
 import os
-from dotenv import load_dotenv
 import json
 from datetime import datetime, date, timedelta
 import html
 import re
 
-# Load environment variables
-load_dotenv()
-
 # Authentication
-USERNAME = os.getenv('STREAMLIT_USERNAME')
-PASSWORD = os.getenv('STREAMLIT_PASSWORD')
+USERNAME = st.secrets["STREAMLIT_USERNAME"]
+PASSWORD = st.secrets["STREAMLIT_PASSWORD"]
 
 # Load configuration
 def load_config():
@@ -32,7 +28,7 @@ OPENROUTER_AVAILABLE = False
 
 try:
     import openai
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     if OPENAI_API_KEY:
         openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
         OPENAI_AVAILABLE = True
@@ -41,23 +37,23 @@ except:
 
 try:
     import google.generativeai as genai
-    if os.getenv('GEMINI_API_KEY'):
-        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+    if st.secrets.get("GEMINI_API_KEY"):
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         GEMINI_AVAILABLE = True
 except:
     pass
 
 try:
     import anthropic
-    if os.getenv('ANTHROPIC_API_KEY'):
-        anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+    if st.secrets.get("ANTHROPIC_API_KEY"):
+        anthropic_client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
         ANTHROPIC_AVAILABLE = True
 except:
     pass
 
 try:
     import groq
-    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+    GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
     if GROQ_API_KEY:
         groq_client = groq.Groq(api_key=GROQ_API_KEY)
         GROQ_AVAILABLE = True
@@ -67,7 +63,7 @@ except Exception as e:
 try:
     # OpenRouter uses the OpenAI SDK
     import openai
-    OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+    OPENROUTER_API_KEY = st.secrets.get("OPENROUTER_API_KEY")
     if OPENROUTER_API_KEY:
         openrouter_client = openai.OpenAI(
             base_url="https://openrouter.ai/api/v1",
@@ -309,7 +305,7 @@ def get_ai_response(selected_model, message, chat_history):
             return response.choices[0].message.content, token_count
             
         else:
-            return f"API not available for {provider}. Please check your API keys in .env file.", 0
+            return f"API not available for {provider}. Please check your API keys in secrets.toml file.", 0
             
     except Exception as e:
         return f"Error: {str(e)}", 0
@@ -351,17 +347,6 @@ if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'selected_model_name' not in st.session_state:
     st.session_state['selected_model_name'] = None
-
-# --- Groq Integration ---
-GROQ_AVAILABLE = False
-try:
-    import groq
-    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-    if GROQ_API_KEY:
-        groq_client = groq.Groq(api_key=GROQ_API_KEY)
-        GROQ_AVAILABLE = True
-except Exception as e:
-    GROQ_AVAILABLE = False
 
 # --- Login Function ---
 def login():
@@ -464,27 +449,27 @@ if available_models:
         if GEMINI_AVAILABLE:
             st.success('✅ Gemini API available')
         else:
-            st.error('❌ Gemini API not available - check GEMINI_API_KEY in .env')
+            st.error('❌ Gemini API not available - check GEMINI_API_KEY in secrets.toml')
     elif provider == 'OpenAI':
         if OPENAI_AVAILABLE:
             st.success('✅ OpenAI API available')
         else:
-            st.error('❌ OpenAI API not available - check OPENAI_API_KEY in .env')
+            st.error('❌ OpenAI API not available - check OPENAI_API_KEY in secrets.toml')
     elif provider == 'Anthropic':
         if ANTHROPIC_AVAILABLE:
             st.success('✅ Anthropic API available')
         else:
-            st.error('❌ Anthropic API not available - check ANTHROPIC_API_KEY in .env')
+            st.error('❌ Anthropic API not available - check ANTHROPIC_API_KEY in secrets.toml')
     elif provider == 'Groq':
         if GROQ_AVAILABLE:
             st.success('✅ Groq API available')
         else:
-            st.error('❌ Groq API not available - check GROQ_API_KEY in .env')
+            st.error('❌ Groq API not available - check GROQ_API_KEY in secrets.toml')
     elif provider == 'OpenRouter':
         if OPENROUTER_AVAILABLE:
             st.success('✅ OpenRouter API available')
         else:
-            st.error('❌ OpenRouter API not available - check OPENROUTER_API_KEY in .env')
+            st.error('❌ OpenRouter API not available - check OPENROUTER_API_KEY in secrets.toml')
 else:
     st.error('No models configured. Please check config.json')
     st.stop()
@@ -692,4 +677,4 @@ with st.sidebar:
                 st.download_button('Download Chat (.txt)', chat_text, file_name='chat_history.txt', mime='text/plain', use_container_width=True)
             else:
                 chat_json = pyjson.dumps(st.session_state['chat_history'], indent=2, ensure_ascii=False)
-                st.download_button('Download Chat (.json)', chat_json, file_name='chat_history.json', mime='application/json', use_container_width=True) 
+                st.download_button('Download Chat (.json)', chat_json, file_name='chat_history.json', mime='application/json', use_container_width=True)
